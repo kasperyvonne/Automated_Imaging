@@ -918,8 +918,7 @@ def do_everything(path_to_data):
         plot_all_parameterplots(path_to_hdf)
         delete_data(path_to_hdf, 3, run_nr)
         
-
-if __name__ == '__main__':
+def main():
     '''
     You need to change the path to your data.
     The epochs in '.../sources/<source_name>/data/' will be done by multiprocessing. WSClean uses one thread per epoch.
@@ -929,4 +928,7 @@ if __name__ == '__main__':
     nepochs = len(msets)
     p = mp.Pool(processes= nepochs, maxtasksperchild =1)
     p.map(do_everything, msets)
+
+if __name__ == '__main__':
+    main()
 

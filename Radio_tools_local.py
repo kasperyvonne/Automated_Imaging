@@ -918,8 +918,7 @@ def do_everything(path_to_data):
         plot_all_parameterplots(path_to_hdf)
         delete_data(path_to_hdf, 3, run_nr)
         
-
-if __name__ == '__main__':
+def main():
     '''
     You need to change the path to your data.
     The epochs in '.../sources/<source_name>/data/' will be done one by one. WSClean uses three threads per epoch.
@@ -928,3 +927,6 @@ if __name__ == '__main__':
     epochs = glob.glob(str(path_to_data)+'/*.uvf')
     for epoch in epochs:
         do_everything(epoch)
+
+if __name__ == '__main__':
+    main()
