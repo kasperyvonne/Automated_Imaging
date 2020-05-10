@@ -631,68 +631,68 @@ def get_best_pictures(path_to_hdf, sourcename, run_nr=0):
     ax1.set_title('DR='+ str(Drange[0]))
     ax1.set_xlabel('Pixel')
     ax1.set_ylabel('Pixel')
-    plt.ylim([300, 500])
-    plt.xlim([500, 300])
     plt1 = ax1.imshow(im1,origin='lower',
                         cmap='hot',
                         norm = colors.SymLogNorm(linthresh=0.0001, 
                                                 linscale=0.0001, vmin= -0.001345288, vmax=0.09435418) )
+    ax1.set_ylim(400,700)
+    ax1.set_xlim(400,700)                                            
     fig.colorbar(plt1, ax=ax1,  ticks = [(-1e-3, 0, 1e-3, 1e-2)] , fraction=0.046, pad=0.04, label='Flux in Jy/beam')
     
     ax2.set_title('DR='+ str(Drange[1]))
     ax2.set_xlabel('Pixel')
     ax2.set_ylabel('Pixel')
-    plt.ylim([300, 500])
-    plt.xlim([500, 300])
     plt2 = ax2.imshow(im2,origin='lower',
                         cmap='hot',
                         norm = colors.SymLogNorm(linthresh=0.0001, 
                                                 linscale=0.0001, vmin= -0.001345288, vmax=0.09435418) )
+    ax2.set_ylim(400,700)
+    ax2.set_xlim(400,700)                                              
     fig.colorbar(plt2, ax=ax2, ticks = [(-1e-3, 0, 1e-3, 1e-2)] , fraction=0.046, pad=0.04, label='Flux in Jy/beam')
 
     ax3.set_title('DR='+ str(Drange[2]))
     ax3.set_xlabel('Pixel')
     ax3.set_ylabel('Pixel')
-    plt.ylim([300, 500])
-    plt.xlim([500, 300])
     plt3 = ax3.imshow(im3,origin='lower',
                         cmap='hot',
                         norm = colors.SymLogNorm(linthresh=0.0001, 
                                                 linscale=0.0001, vmin= -0.001345288, vmax=0.09435418) )
+    ax3.set_ylim(400,700)
+    ax3.set_xlim(400,700)  
     fig.colorbar(plt3, ax=ax3,  ticks = [(-1e-3, 0, 1e-3, 1e-2)] ,fraction=0.046, pad=0.04, label='Flux in Jy/beam')
 
     ax4.set_title('Corresponding Residual')
     ax4.set_xlabel('Pixel')
     ax4.set_ylabel('Pixel')
-    plt.ylim([300, 500])
-    plt.xlim([500, 300])
     plt4 = ax4.imshow(re1,origin='lower',
                         cmap='hot',
                         norm = colors.SymLogNorm(linthresh=0.0001, 
                                                 linscale=0.0001, vmin= -0.001345288, vmax=0.09435418) )
+    ax4.set_ylim(400,700)
+    ax4.set_xlim(400,700)                                              
     fig.colorbar(plt4, ax=ax4, ticks = [(-1e-3, 0, 1e-3, 1e-2)] , fraction=0.046, pad=0.04, label='Flux in Jy/beam')
 
     ax5.set_title('Corresponding Residual')
     ax5.set_xlabel('Pixel')
     ax5.set_ylabel('Pixel')
-    plt.ylim([300, 500])
-    plt.xlim([500, 300])
     plt5 = ax5.imshow(re2,origin='lower',
                         cmap='hot',
                         norm = colors.SymLogNorm(linthresh=0.0001, 
                                                 linscale=0.0001, vmin= -0.001345288, vmax=0.09435418) )
+    ax5.set_ylim(400,700)
+    ax5.set_xlim(400,700)                                                  
     fig.colorbar(plt5, ax=ax5, ticks = [(-1e-3, 0, 1e-3, 1e-2)] , fraction=0.046, pad=0.04, label='Flux in Jy/beam')
 
     ax6.set_title('Corresponding Residual')
     ax6.set_xlabel('Pixel')
     ax6.set_ylabel('Pixel')
-    plt.ylim([300, 500])
-    plt.xlim([500, 300])
     plt6 = ax6.imshow(re3,origin='lower',
                         cmap='hot',
                         norm = colors.SymLogNorm(linthresh=0.0001, 
                                                 linscale=0.0001, vmin= -0.001345288, vmax=0.09435418) )
     fig.colorbar(plt6, ax=ax6, ticks = [(-1e-3, 0, 1e-3, 1e-2)] , fraction=0.046, pad=0.04, label='Flux in Jy/beam')
+    ax6.set_ylim(400,700)
+    ax6.set_xlim(400,700)  
     plt.tight_layout()
     
     plt.savefig(str(Path(path_to_hdf).parent)+'/Best3_MRun_'+str(run_nr)+'.png')
