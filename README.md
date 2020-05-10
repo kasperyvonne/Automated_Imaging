@@ -20,4 +20,4 @@ If you want to use this tool on your local machine use: **Radio_tools_local.py**
 
 ## Adjust the script
 You need to adjust a few things in the script. 
-Of course, you need to adjust the path to your data in the *main()* function and in the **do_everything(...)** function you could use the default values or change things up for your case. 
+Of course, you need to adjust the path to your data in the **main()** function. In **do_everything(...)** you could use the default values or change things up for your case. 
