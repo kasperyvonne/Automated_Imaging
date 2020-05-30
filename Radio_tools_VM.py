@@ -24,17 +24,17 @@ To use this you need to install
     WSClean: https://sourceforge.net/p/wsclean/wiki/Installation/
     and Casa: https://casa.nrao.edu/casa_obtaining.shtml (Don't forget to set path in bashrc)
 
-Preferably your folder structure should look like this /home/.../Sources/<name of source>/data/*.uvf 
+Preferably your directory structure should look like this /home/.../Sources/<name of source>/data/*.uvf 
 
 --convertion from fits files to .ms files--
 The measurement sets, which are requierd for WSClean, are created from every .uvf file 
-and stored within in the data folder in an extra measurement_sets folder.
+and stored within in the data directory in an extra measurement_sets directory.
 --run WSClean--
 WSClean will be run several times per epoch with your requested parameter combinations. The best
 outcomes will be stored in '.../<source_name>/best_epochs/<measurement_name>/MRun<X>_Run_Nr<Y>_<measurement_name>/'.
 You could open the resulting <measurement_name>-image.fits for example with ds9 or every other fitsviewer.
 --plot results--
-For every epoch, there will be a results_<measurement_name> folder with subfolders for the diffrent MRuns.
+For every epoch, there will be a results_<measurement_name> directory with subdirectories for the diffrent MRuns.
 Within you find a data_<source_name>.hdf file with all parameters and Dynamic Ranges for each run.
 Also you will find some plots:  a plot of the best image, that is to say the image with the highest Dynamic Range, 
 a plot of the best three images and their corresponding residuals, 
@@ -78,12 +78,12 @@ def uvfits_to_ms(input_data, output_data):
 
 def all_uvf2ms(input_dir):
     '''
-    INPUT_DIR: folder with your .uvf files of the source
+    INPUT_DIR: directory with your .uvf files of the source
 
     EXAMPLE: all_uvf2ms('/home/MAXMUSTERMANN/*path to data*//sources/<source_name>/data')
     
     Converts all .uvf files in the input dictionary to .ms files. Saves .ms files in 
-    measurement_sets folder with original filename. 
+    measurement_sets directory with original filename. 
     
     '''
     data_path = input_dir
@@ -96,12 +96,12 @@ def all_uvf2ms(input_dir):
 
 def all_data2ms(data_path,data_type):
     '''
-    INPUT_DIR: folder with your .data_type files of the source
+    INPUT_DIR: directory with your .data_type files of the source
     DATA_TYPE: data type of your data.
     EXAMPLE: all_data2ms('/home/MAXMUSTERMANN/*path to data*/sources/<source_name>/data', 'uvf')
     
     Converts all .data_type files in the input dictionary to .ms files, Saves .ms files in 
-    measurement_sets folder with original filename. 
+    measurement_sets directory with original filename. 
     
     '''
     
@@ -172,7 +172,7 @@ def run_wsclean(data_path, model_name, xsize, ysize, scale, niter = 1000000,
         + ' -auto-threshold ' + str(auto_thresh) \
         + ' -name ' + str(out_dict2)+'/'+str(model_name)  \
         + ' ' + str(data_path) 
-    #create folder for wsclean output
+    #create directory for wsclean output
  
     if os.path.exists(out_dict2)==False:
        subprocess.call(["mkdir", str(out_dict2)])
@@ -227,7 +227,7 @@ def run_grid(data_path, model_name,
                                 'name of measurement',1024,1024,0.1)
             
             Creates an inital parametergrid out of the given values, calls run_wsclean and saves the output in the epochs
-            folder. Creates results folder for each epoch with subfolders for the MRuns.
+            directory. Creates results directory for each epoch with subdirectories for the MRuns.
             The parametersets are saved in the data_<source_name>.hdf with key:'ParamSets'
             '''
             parent_path= Path(data_path).parent
@@ -250,19 +250,19 @@ def run_grid(data_path, model_name,
             print(weight)
             print(scale_bias)
             
-            #create epochs folder
+            #create epochs directory
             if os.path.exists(str(parent3_path)+'/epochs')==False:
                 subprocess.call(["mkdir", str(parent3_path)+'/epochs/'])
             
-            #creates subfolder for every epoch
+            #creates subdirectory for every epoch
             if os.path.exists(str(parent3_path)+'/epochs/'+str(model_name))==False:
                 subprocess.call(["mkdir", str(parent3_path)+'/epochs/'+str(model_name)])
             
-            #creates results folder for each epoch
+            #creates results directory for each epoch
             if os.path.exists(str(parent3_path)+'/results_'+str(model_name))==False:
                 subprocess.call(["mkdir", str(parent3_path)+'/results_'+str(model_name)+'/'])
             
-            #creates subfolder for the MRun
+            #creates subdirectory for the MRun
             if os.path.exists(str(parent3_path)+'/results_'+str(model_name)+'/MRun_'+str(run_nr))==False:
                 subprocess.call(["mkdir", str(parent3_path)+'/results_'+str(model_name)+'/MRun_'+str(run_nr)])   
             
@@ -332,19 +332,18 @@ def run_another_grid(path_to_hdf, path_to_ms, number_paramspace, xsize =1024, ys
 Function to delete unnecessary data
 '''
 
-def delete_data(path_to_hdf, value, run_nr):
+def save_data(path_to_hdf, value, run_nr):
     '''
     PATH_TO_DATA: Path to data_{}.hdf file
     VALUE: amout of images to preserve
 
-    Example: delete_data(/home/MAXMUSTERMANN/*path to Data*/TXS/results_0149+710.u.2018_02_02/MRun_1/data.hdf', 3, 0)
+    Example: save_data(/home/MAXMUSTERMANN/*path to Data*/TXS/results_0149+710.u.2018_02_02/MRun_1/data.hdf', 3, 0)
     
     Saves the best WSClean output.The amount is given by VALUE. 
     Adds the Number of MRun to the data name, to avoid loosing data in later MRuns.
-    Copies the best WSClean output to BestEpochs folder. 
-    Deletes everything in the epochs folder.
-
+    Copies the best WSClean output to BestEpochs directory. 
     '''
+
     #get paths to best data
     df = pd.read_hdf(path_to_hdf, key = 'df')
     sorted_df = df.sort_values(by=['DR'], axis = 1, ascending=False).iloc[:,0:value]
@@ -355,22 +354,40 @@ def delete_data(path_to_hdf, value, run_nr):
     parent3_path= Path(parent2_path).parent #../Source/<source_name>/results<...>
     parent4_path= Path(parent3_path).parent #'../Source/<source_name>
     
-    #create new folder for best epochs
+    #create new directory for best epochs
     if os.path.exists(str(parent4_path)+'/BestEpochs')==False:
        subprocess.call(["mkdir", str(parent4_path)+'/BestEpochs/'])
+    #create new directory for each MRun
+    if os.path.exists(str(parent4_path)+'/BestEpochs/MRun'+str(run_nr))==False:
+       subprocess.call(["mkdir", str(parent4_path)+'/BestEpochs/MRun'+str(run_nr)])       
 
-    #rename and copy best epochs 
+    #copy best epochs in given directory
     for listedpath in listed:
-        old = str(Path(listedpath).parent)
-        name = old.split('/')[-1]
-        command = 'mv ' + str(Path(listedpath).parent)+'/ '+ str(Path(listedpath).parent.parent)+'/MRun'+str(run_nr)+'_'+str(name)+'/'
-        subprocess.call(command, shell=True)
-        command2='cp -r ' + str(Path(listedpath).parent.parent)+'/MRun'+str(run_nr)+'_'+str(name)+'/ '+ str(parent4_path)+'/BestEpochs/'
+        #old = str(Path(listedpath).parent)
+        #name = old.split('/')[-1]
+        #command = 'mv ' + str(Path(listedpath).parent)+'/ '+ str(Path(listedpath).parent.parent)+'/MRun'+str(run_nr)+'_'+str(name)+'/'
+        #subprocess.call(command, shell=True)
+        command2='cp -r ' + str(Path(listedpath).parent)+'/ '+ str(parent4_path)+'/BestEpochs/MRun'+str(run_nr)+'/'
         subprocess.call(command2, shell=True)
     
-    #delete everything in the epochs folder
-    command3 = 'rm -rf ' +str(parent4_path)+'/epochs/*'
-    subprocess.call(command3, shell=True)
+
+def delete_data(path_to_hdf, value):
+    '''
+    PATH_TO_DATA: Path to data_{}.hdf file
+    VALUE: amout of images to preserve
+
+    Function deletes the data(whole WSClean output) with low Dynamic Range. 
+    The best 'VALUE' pictures are preserved.
+    '''
+    df = pd.read_hdf(path_to_hdf, key = 'df')
+    sorted_df = df.sort_values(by=['DR'], axis = 1).iloc[:,0:-value]
+    listed = sorted_df.loc['path',:].tolist()
+    #print(listed)
+    for listedpath in listed:
+        command = 'rm -rf ' +str(Path(listedpath).parent)+'/'
+        subprocess.call(command, shell=True)
+        #print(listedpath)
+
 '''
 Functions to get specific quantities
 '''
@@ -433,7 +450,7 @@ def get_params(path_to_data):
 
 def get_all_parameters(path_to_data, run_nr=0):
     '''
-    PATH_TO_DATA: Path to the folder in the epoch folder : .../epochs/name
+    PATH_TO_DATA: Path to the directory in the epoch directory : .../epochs/name
     RUN_NR: number of MRun
 
     Example: get_all_parameters('/home/MAXMUSTERMANN/*path to data*/IC310/epochs/0313+411.u.2014_05_12')
@@ -885,7 +902,7 @@ def do_everything(path_to_data):
 
     #choose the initial parameters and the parameter spaces for your grid
     run_grid(path_to_ms, name, 
-        xsize=1024, ysize=1024, scale=0.1, 
+        xsize=1024, ysize=1024, scale=0.2, 
         niter= 5000,
         mgain_min=0.5, mgain_max=0.95, mgain_steps=3,
         gain_min=0.05, gain_max = 0.1, gain_steps =3,
@@ -903,7 +920,8 @@ def do_everything(path_to_data):
     get_best_pictures(path_to_hdf, sourcename, run_nr=run_nr)
     get_nicest_picture(path_to_hdf, sourcename, run_nr=run_nr)
     plot_all_parameterplots(path_to_hdf)
-    delete_data(path_to_hdf, 3, 0)
+    save_data(path_to_hdf, 3, run_nr)
+    delete_data(path_to_hdf, 3)
     
     for run_nr in np.linspace(1, number_MRuns-1, num=number_MRuns-1):
         run_nr = int(run_nr)
@@ -916,14 +934,15 @@ def do_everything(path_to_data):
         get_best_pictures(path_to_hdf, sourcename, run_nr=run_nr) # maybe get sourcename out of the data.hdf 
         get_nicest_picture(path_to_hdf, sourcename, run_nr=run_nr)
         plot_all_parameterplots(path_to_hdf)
-        delete_data(path_to_hdf, 3, run_nr)
-        
+        save_data(path_to_hdf, 3, run_nr)
+        delete_data(path_to_hdf, 3)
+    
 def main():
     '''
     You need to change the path to your data.
     The epochs in '.../sources/<source_name>/data/' will be done by multiprocessing. WSClean uses one thread per epoch.
     '''
-    path_to_data = '/net/big-tank/POOL/users/ykasper/sources/TXS0149+710/data'
+    path_to_data = '/net/big-tank/POOL/users/ykasper/Sources/TXS0149+710/data'
     msets = glob.glob(str(path_to_data)+'/*.uvf')
     nepochs = len(msets)
     p = mp.Pool(processes= nepochs, maxtasksperchild =1)
