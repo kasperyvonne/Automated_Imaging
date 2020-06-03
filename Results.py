@@ -33,6 +33,13 @@ def get_rms(image):
     x = np.array([lower_left,lower_right,upper_left,upper_right])
     return(np.mean(x)) 
 
+def get_DynamicRange(path_to_image):
+    im = fits.open(str(path_to_image))[0]
+    rms = get_rms(im)
+    image_data = im.data[0,0,:,:]
+    peak = image_data.max()
+    return (peak/rms)
+
 def with_beam_and_mask(path_to_image, sourcename, rms, sigma):    
     image = fits.open(path_to_image)[0]
 
@@ -114,7 +121,7 @@ def with_beam_and_mask(path_to_image, sourcename, rms, sigma):
 
     #cbar.ax.set_ylabel('Flux in Jy/beam')
     plt.tight_layout()
-    plt.savefig('/home/yvonne/Schreibtisch/Ergebnisse27_05-03_06/'+str(name1)+'_cut_at_'+str(sigma)+'.png')
+    plt.savefig('/home/yvonne/Schreibtisch/Ergebnisse_03-09_06/Plots/'+str(name1)+'_cut_at_'+str(sigma)+'.png')
     plt.clf()
 
 def with_beam_and_text(path_to_image, sourcename, DyRa):    
@@ -193,7 +200,7 @@ def with_beam_and_text(path_to_image, sourcename, DyRa):
 
     #cbar.ax.set_ylabel('Flux in Jy/beam')
     plt.tight_layout()
-    plt.savefig('/home/yvonne/Schreibtisch/Ergebnisse27_05-03_06/'+str(name1)+'_uncut.png')
+    plt.savefig('/home/yvonne/Schreibtisch/Ergebnisse_03-09_06/Plots/'+str(name1)+'_uncut.png')
     plt.clf()    
 
 def get_dyra(path_to_hdf):
@@ -262,8 +269,57 @@ def run_WSClean(path_to_hdf, epoch):
     print('Cleaning done :) ')
     return str(out_dict2)+'/'+str(epoch)
 
-def main():
+def run_WSClean_with_beam(path_to_hdf, epoch, beamsize):
+
+    df = pd.read_hdf(path_to_hdf, 'df')
+    sorted_df = df.sort_values(by=['DR'], axis = 1).iloc[:,-1:]
+    xs=int(sorted_df.loc['xsize'][0])
+    ys=int(sorted_df.loc['ysize'][0])
+    scale=np.round(sorted_df.loc['scale'][0],1)
+    niter=int(sorted_df.loc['niter'][0])
+    mgain=np.round(sorted_df.loc['mgain'][0],4)
+    gain=np.round(sorted_df.loc['gain'][0],4)
+    automask=np.round(sorted_df.loc['auto_mask'][0],4)
+    autothresh=np.round(sorted_df.loc['auto_thresh'][0],4)
+    weight=np.round(sorted_df.loc['weight'][0],4)
+    scalebias=sorted_df.loc['scale_bias'][0]
+
+    data_path = str(Path(path_to_hdf).parent.parent.parent)+'/data/measurement_sets/0149+710.u.'+str(epoch)+'.ms'
+    out_dict = str(Path(path_to_hdf).parent.parent.parent)+'/BestEpochSameBeam/'
+    out_dict2 = str(Path(path_to_hdf).parent.parent.parent)+'/BestEpochSameBeam/'+str(epoch)
+    #print(data_path)
+    #print(out_dict)
+
+    command = 'wsclean '
+    command = command \
+    +'-quiet ' \
+    +'-j '+str(2)+' ' \
+    +'-multiscale ' \
+    +'-beam-size '+ str(beamsize) \
+    +' -size ' + str(xs) + ' ' + str(ys) \
+    + ' -scale ' + str(scale) + 'masec' \
+    + ' -niter ' + str(niter) \
+    + ' -mgain ' + str(mgain) \
+    + ' -gain ' + str(gain) \
+    + ' -auto-mask ' + str(automask) \
+    + ' -weight briggs ' + str(weight) \
+    + ' -multiscale-scale-bias ' + str(scalebias) \
+    + ' -auto-threshold ' + str(autothresh) \
+    + ' -name ' + str(out_dict2)+'/'+str(epoch)  \
+    + ' ' + str(data_path)
     
+    
+    if os.path.exists(out_dict)==False:
+       subprocess.call(["mkdir", str(out_dict)])
+
+    if os.path.exists(out_dict2)==False:
+       subprocess.call(["mkdir", str(out_dict2)])
+
+    subprocess.run(command, shell=True, timeout = 300)
+    print('Cleaning done :) ')
+    return str(out_dict2)+'/'+str(epoch)
+
+def main():
     path_to_grid = '/home/yvonne/Dokumente/MA/TXS_final_grid'
     path_2017_11_18=str(path_to_grid)+'/results_0149+710.u.2017_11_18/MRun_2/data_TXS0149+710.h5'
     path_2017_01_28=str(path_to_grid)+'/results_0149+710.u.2017_01_28/MRun_2/data_TXS0149+710.h5'
@@ -273,12 +329,22 @@ def main():
     path_2018_10_06=str(path_to_grid)+'/results_0149+710.u.2018_10_06/MRun_2/data_TXS0149+710.h5'
     path_2019_07_19=str(path_to_grid)+'/results_0149+710.u.2019_07_19/MRun_2/data_TXS0149+710.h5'
     
-    test_path ='/home/yvonne/Dokumente/MA/TXS_final_grid/BestEpochsLocal/2019_07_19/2019_07_19-image.fits'
-    with_beam_and_mask(test_path, sourcename, get_rms(fits.open(str(test_path))[0]), 10)
+    #test_path ='/home/yvonne/Dokumente/MA/TXS_final_grid/BestEpochsLocal/2019_07_19/2019_07_19-image.fits'
+    #with_beam_and_mask(test_path, sourcename, get_rms(fits.open(str(test_path))[0]), 10)
     
     path_list=[path_2017_11_18, path_2017_01_28, path_2017_04_22,
         path_2017_06_17, path_2018_02_02, path_2018_10_06, path_2019_07_19]
     sourcename='TXS0149+710'
+    beamsize= 0.0014013
+    for path in path_list:
+        epoch = str(Path(path).parent.parent).split('.u.')[-1]
+        print('starting with:',epoch)
+        path_to_fits = run_WSClean_with_beam(path, epoch, beamsize)
+        path_to_image = str(path_to_fits)+'-image.fits'
+        with_beam_and_text(path_to_image, sourcename, get_DynamicRange(path_to_image))
+        with_beam_and_mask(path_to_image, sourcename, get_rms(fits.open(str(path_to_image))[0]), 5)
+        print('done with:', epoch)
+    '''
     for path in path_list:
         epoch = str(Path(path).parent.parent).split('.u.')[-1]
         path_to_fits = run_WSClean(path, epoch)
@@ -288,6 +354,6 @@ def main():
         if os.path.exists(str(path_to_grid)+'/BestParams/')==False:
             subprocess.call(["mkdir",str(path_to_grid)+'/BestParams/'])
         get_Params(path, str(path_to_grid)+'/BestParams/'+str(epoch)+'_Params.txt')
-    
+    '''
 if __name__ == '__main__':
     main()
