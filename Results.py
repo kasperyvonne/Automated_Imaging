@@ -33,14 +33,13 @@ def get_rms(image):
     x = np.array([lower_left,lower_right,upper_left,upper_right])
     return(np.mean(x)) 
 
-def get_DynamicRange(path_to_image):
+def get_dynamicrange(path_to_image):
     im = fits.open(str(path_to_image))[0]
+    im1 = im.data[0,0,:,:]
     rms = get_rms(im)
-    image_data = im.data[0,0,:,:]
-    peak = image_data.max()
+    peak = im1.max()
     return (peak/rms)
-
-def with_beam_and_mask(path_to_image, sourcename, rms, sigma):    
+def with_beam_and_mask(path_to_image, sourcename, rms, sigma, out_path):    
     image = fits.open(path_to_image)[0]
 
     im1 = image.data[0,0,:,:]
@@ -121,10 +120,10 @@ def with_beam_and_mask(path_to_image, sourcename, rms, sigma):
 
     #cbar.ax.set_ylabel('Flux in Jy/beam')
     plt.tight_layout()
-    plt.savefig('/home/yvonne/Schreibtisch/Ergebnisse_03-09_06/Plots/'+str(name1)+'_cut_at_'+str(sigma)+'.png')
+    plt.savefig(str(out_path)+str(name1)+'_cut_at_'+str(sigma)+'.png')
     plt.clf()
-
-def with_beam_and_text(path_to_image, sourcename, DyRa):    
+    fig.clf()
+def with_beam_and_text(path_to_image, sourcename, DyRa, out_path):    
     image = fits.open(path_to_image)[0]
 
     im1 = image.data[0,0,:,:]
@@ -200,9 +199,9 @@ def with_beam_and_text(path_to_image, sourcename, DyRa):
 
     #cbar.ax.set_ylabel('Flux in Jy/beam')
     plt.tight_layout()
-    plt.savefig('/home/yvonne/Schreibtisch/Ergebnisse_03-09_06/Plots/'+str(name1)+'_uncut.png')
+    plt.savefig(str(out_path)+str(name1)+'_uncut.png' )
     plt.clf()    
-
+    fig.clf()
 def get_dyra(path_to_hdf):
     df = pd.read_hdf(path_to_hdf, 'df')
     sorted_df = df.sort_values(by=['DR'], axis = 1).iloc[:,-1:]
@@ -216,8 +215,8 @@ def get_params(path_to_hdf, out_dict):
         file.write(sorted_df.to_latex())
 
 def get_paramset(path_to_hdf, out_dict):
-    data = pd.read_hdf(path_to_data, 'df')
-    param_set = pd.read_hdf(path_to_data,'ParamSets')
+    data = pd.read_hdf(path_to_hdf, 'df')
+    param_set = pd.read_hdf(path_to_hdf,'ParamSets')
     with open(str(out_dict), 'w') as file:
         file.write(param_set.to_latex(index=True,float_format="%.4f",header=False,na_rep=''))
     
@@ -268,7 +267,6 @@ def run_WSClean(path_to_hdf, epoch):
     subprocess.run(command, shell=True, timeout = 300)
     print('Cleaning done :) ')
     return str(out_dict2)+'/'+str(epoch)
-
 def run_WSClean_with_beam(path_to_hdf, epoch, beamsize):
 
     df = pd.read_hdf(path_to_hdf, 'df')
@@ -319,11 +317,29 @@ def run_WSClean_with_beam(path_to_hdf, epoch, beamsize):
     print('Cleaning done :) ')
     return str(out_dict2)+'/'+str(epoch)
 
+def get_beam_info(path_to_image):
+    '''
+    Get the bmaj and bmin values in masec from the fits header
+    '''
+    image = fits.open(path_to_image)[0]
+
+    im1 = image.data[0,0,:,:]
+    header = image.header
+    
+    bmin = ((header['BMIN'] * u.degree).to(u.mas)).value
+    bmaj = ((header['BMAJ'] * u.degree).to(u.mas)).value
+    bangle =header['BPA']
+    
+    return(bmin, bmaj, bangle)
+
+ 
+
 def main():
-    path_to_grid = '/home/yvonne/Dokumente/MA/TXS_final_grid'
+    
+    path_to_grid = '/home/yvonne/Schreibtisch/TXS_FUCKING_final'
     path_2017_11_18=str(path_to_grid)+'/results_0149+710.u.2017_11_18/MRun_2/data_TXS0149+710.h5'
     path_2017_01_28=str(path_to_grid)+'/results_0149+710.u.2017_01_28/MRun_2/data_TXS0149+710.h5'
-    path_2017_04_22=str(path_to_grid)+'/results_0149+710.u.2017_04_22/MRun_0/data_TXS0149+710.h5'
+    path_2017_04_22=str(path_to_grid)+'/results_0149+710.u.2017_04_22/MRun_2/data_TXS0149+710.h5'
     path_2017_06_17=str(path_to_grid)+'/results_0149+710.u.2017_06_17/MRun_2/data_TXS0149+710.h5'
     path_2018_02_02=str(path_to_grid)+'/results_0149+710.u.2018_02_02/MRun_2/data_TXS0149+710.h5'
     path_2018_10_06=str(path_to_grid)+'/results_0149+710.u.2018_10_06/MRun_2/data_TXS0149+710.h5'
@@ -331,29 +347,43 @@ def main():
     
     #test_path ='/home/yvonne/Dokumente/MA/TXS_final_grid/BestEpochsLocal/2019_07_19/2019_07_19-image.fits'
     #with_beam_and_mask(test_path, sourcename, get_rms(fits.open(str(test_path))[0]), 10)
-    
+
+    get_paramset(str(path_to_grid)+'/results_0149+710.u.2017_11_18/MRun_0/data_TXS0149+710.h5', str(path_to_grid)+'/IntialParamGrid.txt' )
+    print("The inital parametergrid is saved as a latexfile.")
     path_list=[path_2017_11_18, path_2017_01_28, path_2017_04_22,
         path_2017_06_17, path_2018_02_02, path_2018_10_06, path_2019_07_19]
     sourcename='TXS0149+710'
-    beamsize= 0.0014013
+    beam_list=np.zeros((len(path_list),2))
+    i=0
     for path in path_list:
         epoch = str(Path(path).parent.parent).split('.u.')[-1]
         print('starting with:',epoch)
-        path_to_fits = run_WSClean_with_beam(path, epoch, beamsize)
-        path_to_image = str(path_to_fits)+'-image.fits'
-        with_beam_and_text(path_to_image, sourcename, get_DynamicRange(path_to_image))
-        with_beam_and_mask(path_to_image, sourcename, get_rms(fits.open(str(path_to_image))[0]), 5)
-        print('done with:', epoch)
-    '''
-    for path in path_list:
-        epoch = str(Path(path).parent.parent).split('.u.')[-1]
+        #creates a new dict with localy cleaned images
         path_to_fits = run_WSClean(path, epoch)
         path_to_image = str(path_to_fits)+'-image.fits'
-        with_beam_and_text(path_to_image, sourcename, get_DyRa(path))
-        with_beam_and_mask(path_to_image, sourcename, get_rms(fits.open(str(path_to_image))[0]), 5)
+        #plots images with and without mask  
+        out = '/home/yvonne/Schreibtisch/Ergebnisse_15_06-17_06/Plots/'
+        with_beam_and_text(path_to_image, sourcename, get_dyra(path), out)
+        with_beam_and_mask(path_to_image, sourcename, get_rms(fits.open(str(path_to_image))[0]), 5, out)
+        #Parameterset for every epoch as latex table
         if os.path.exists(str(path_to_grid)+'/BestParams/')==False:
             subprocess.call(["mkdir",str(path_to_grid)+'/BestParams/'])
-        get_Params(path, str(path_to_grid)+'/BestParams/'+str(epoch)+'_Params.txt')
-    '''
+        get_params(path, str(path_to_grid)+'/BestParams/'+str(epoch)+'_Params.txt')
+        minor, major, angle = get_beam_info(path_to_image)
+        beam_list[i]=[minor,major]
+        i+=1
+    
+    beamsize= beam_list.max()*0.001
+    print("Now let's do this again with a set beam at ", beamsize, "arcsec")
+    for path in path_list:
+        epoch = str(Path(path).parent.parent).split('.u.')[-1]
+        print('starting with:',epoch)
+        #creates new dict with cleaned images with the biggest beam
+        path_to_fits = run_WSClean_with_beam(path, epoch, beamsize)
+        path_to_image = str(path_to_fits)+'-image.fits'
+        with_beam_and_text(path_to_image, sourcename, get_dynamicrange(path_to_image), '/home/yvonne/Schreibtisch/Ergebnisse_15_06-17_06/Plots/Beam_')
+        with_beam_and_mask(path_to_image, sourcename, get_rms(fits.open(str(path_to_image))[0]), 5, '/home/yvonne/Schreibtisch/Ergebnisse_15_06-17_06/Plots/Beam_')
+        print('done with:', epoch)
+
 if __name__ == '__main__':
     main()

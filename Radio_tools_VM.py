@@ -36,7 +36,7 @@ You could open the resulting <measurement_name>-image.fits for example with ds9 
 --plot results--
 For every epoch, there will be a results_<measurement_name> directory with subdirectories for the diffrent MRuns.
 Within you find a data_<source_name>.hdf file with all parameters and Dynamic Ranges for each run.
-Also you will find some plots:  a plot of the best image, that is to say the image with the highest Dynamic Range, 
+Also you will find some plots:  a plot of the best image, that is to say the image with the highest Dynamic Range,                                                                                                      
 a plot of the best three images and their corresponding residuals, 
 a plot for every paramter distribution.
 
@@ -371,22 +371,15 @@ def save_data(path_to_hdf, value, run_nr):
         subprocess.call(command2, shell=True)
     
 
-def delete_data(path_to_hdf, value):
+def delete_data(path_to_epoch):
     '''
-    PATH_TO_DATA: Path to data_{}.hdf file
-    VALUE: amout of images to preserve
+    PATH_TO_EPOCH: Path to dict with cleaned epochs
+    Function deletes the data(whole WSClean output).
+    '''
 
-    Function deletes the data(whole WSClean output) with low Dynamic Range. 
-    The best 'VALUE' pictures are preserved.
-    '''
-    df = pd.read_hdf(path_to_hdf, key = 'df')
-    sorted_df = df.sort_values(by=['DR'], axis = 1).iloc[:,0:-value]
-    listed = sorted_df.loc['path',:].tolist()
-    #print(listed)
-    for listedpath in listed:
-        command = 'rm -rf ' +str(Path(listedpath).parent)+'/'
-        subprocess.call(command, shell=True)
-        #print(listedpath)
+    command = 'rm -rf ' +str(path_to_epoch)
+    subprocess.call(command, shell=True)
+    #print(listedpath)
 
 '''
 Functions to get specific quantities
@@ -532,7 +525,7 @@ def get_new_paramspace(path_to_hdf, param, number, run_nr):
     mask[ParamRange == bestParam]=1
 
     # weight needs to be between -1 and 1
-    if param =='weight':
+    if param is 'weight':
         if mask[0]==1: 
             end = 0
             space = np.abs((end-bestParam)/number)
@@ -554,9 +547,9 @@ def get_new_paramspace(path_to_hdf, param, number, run_nr):
             if stop >1:
                 stop=1
             return (start, stop, number)
-
+    
     #gain and mgain need to be >0
-    if param == 'gain' or 'mgain':
+    if param is 'gain':
         if mask[0]==1: 
             start= bestParam-(spacing/(2*run_nr)*number)
             if start <0:
@@ -577,17 +570,57 @@ def get_new_paramspace(path_to_hdf, param, number, run_nr):
                 start = 0.000001
             if stop >1 :
                 stop = 0.99999    
-            return (start, stop, number)     
+            return (start, stop, number) 
+        
+    if param is 'mgain':
+        if mask[0]==1: 
+            start= bestParam-(spacing/(2*run_nr)*number)
+            if start <0:
+                start =0.000001
+            return (start, bestParam, number)
 
+        elif mask[-1]==1:    
+            end= bestParam+(spacing/(2*run_nr)*(number))
+            if end <1:
+                end =0.99999
+            return (bestParam,end, number)
+
+        else :
+            newSpacing = spacing/(number-(number/2))
+            start= bestParam - ((number-1)/2)*newSpacing
+            stop= bestParam + ((number-1)/2)*newSpacing
+            if start<0 :
+                start = 0.000001
+            if stop >1 :
+                stop = 0.99999    
+            return (start, stop, number)
+        
+    
     # everything else
     # if best value is on the far left
     if mask[0]==1: 
         start= bestParam-(spacing/(2*run_nr)*number)
+        if param is 'auto_mask':
+            if start <= 2.0:
+                start =2.0
+                bestParam = 3.0
+        if param is 'auto_thresh':
+            if start <= 0.3:
+                start =0.3
+                bestParam = 0.6
         return (start, bestParam, number)
 
     #if best value is on the far right
     elif mask[-1]==1:    
         end= bestParam+(spacing/(2*run_nr)*(number))
+        if param is 'auto_mask':
+            if end <= 5.0:
+                end =5.0
+                bestParam=3.0
+        if param is 'auto_thresh':
+            if end <= 2.0:
+                end = 2.0
+                bestParam=0.5
         return (bestParam,end, number)
 
     #if value is not at the edge
@@ -905,9 +938,9 @@ def do_everything(path_to_data):
         xsize=1024, ysize=1024, scale=0.2, 
         niter= 5000,
         mgain_min=0.5, mgain_max=0.95, mgain_steps=3,
-        gain_min=0.05, gain_max = 0.1, gain_steps =3,
-        auto_mask_min=2, auto_mask_max =3, auto_mask_steps = 3,
-        auto_thresh_min=0.5 ,auto_thresh_max=4, auto_thresh_steps = 3,
+        gain_min=0.03, gain_max = 0.1, gain_steps =3,
+        auto_mask_min=2, auto_mask_max =4, auto_mask_steps = 3,
+        auto_thresh_min=0.5 ,auto_thresh_max=2, auto_thresh_steps = 3,
         weight_min=-1, weight_max =1, weight_step = 3, 
         rank_filter=3, 
         multiscale=True,
@@ -921,11 +954,10 @@ def do_everything(path_to_data):
     get_nicest_picture(path_to_hdf, sourcename, run_nr=run_nr)
     plot_all_parameterplots(path_to_hdf)
     save_data(path_to_hdf, 3, run_nr)
-    delete_data(path_to_hdf, 3)
     
     for run_nr in np.linspace(1, number_MRuns-1, num=number_MRuns-1):
         run_nr = int(run_nr)
-        run_another_grid(path_to_hdf, path_to_ms, number_paramspace=3, xsize =1024, ysize = 1024, scale = 0.1,
+        run_another_grid(path_to_hdf, path_to_ms, number_paramspace=3, xsize =1024, ysize = 1024, scale = 0.2,
                     niter= 5000, rank_filter=3, multiscale=True, model=False, 
                     predict=False, run_nr=run_nr)           
         path_to_epochs= str(Path(path_to_ms).parent.parent.parent)+'/epochs'   
@@ -935,7 +967,7 @@ def do_everything(path_to_data):
         get_nicest_picture(path_to_hdf, sourcename, run_nr=run_nr)
         plot_all_parameterplots(path_to_hdf)
         save_data(path_to_hdf, 3, run_nr)
-        delete_data(path_to_hdf, 3)
+    
     
 def main():
     '''
@@ -947,6 +979,7 @@ def main():
     nepochs = len(msets)
     p = mp.Pool(processes= nepochs, maxtasksperchild =1)
     p.map(do_everything, msets)
+    delete_data('/net/big-tank/POOL/users/ykasper/Sources/TXS0149+710/epochs')
 
 if __name__ == '__main__':
     main()
