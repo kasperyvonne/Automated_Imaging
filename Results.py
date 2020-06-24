@@ -476,6 +476,7 @@ def with_beam_and_mask(path_to_image, sourcename, rms, sigma, out_path):
     epoch = name1.split('.u.')[-1]
     
     #print('Peak Flux=', im1.max())  
+    peak = im1.max()
     mask = np.zeros_like(im1)
     mask[im1>(sigma*rms)]=1
     newmask= mask*im1
@@ -551,6 +552,7 @@ def with_beam_and_mask(path_to_image, sourcename, rms, sigma, out_path):
     plt.savefig(str(out_path)+str(name1)+'_cut_at_'+str(sigma)+'.png')
     plt.clf()
     fig.clf()
+    return(peak, cumulativeflux)
 def with_beam_and_text(path_to_image, sourcename, DyRa, out_path):    
     image = fits.open(path_to_image)[0]
 
@@ -663,7 +665,33 @@ def get_params_all_epochs(path_list, out_dict):
     with open(str(out_dict), 'w') as file:
         file.write(df_new.to_latex())    
 
+def time_date(epoch):
+    nice_year=str(epoch).split('_')[0]
+    nice_month=str(epoch).split('_')[1]
+    nice_day=str(epoch).split('_')[2]
+    return str(nice_year)+'-'+str(nice_month)+'-'+str(nice_day)
 
+def time_date_rev(epoch):
+    nice_year=str(epoch).split('-')[0]
+    nice_month=str(epoch).split('-')[1]
+    nice_day=str(epoch).split('-')[2]
+    return str(nice_day)+'-'+str(nice_month)+'-'+str(nice_year)
+
+def plot_flux(flux, dates, color, name, out):
+    nd=np.empty(len(dates), dtype ='object')
+    for i in np.arange(0,len(dates)):
+        nd[i]=time_date_rev(dates[i])
+    
+    plt.figure(figsize=(8,6))
+    plt.plot(dates, flux,marker = 'x',  linestyle='None', color = color)
+    plt.subplots_adjust(bottom=0.35)
+    plt.xticks(dates,nd, rotation='45')
+    #plt.ylim(0.09,0.2)
+
+    plt.ylabel(str(name)+' Flux in Jy/beam')
+    plt.xlabel('Epochs')
+    plt.savefig(str(out)+str(name)+'Fluxplot.png', dpi=300)    
+    plt.clf()
 def run_WSClean(path_to_hdf, epoch):
     df = pd.read_hdf(path_to_hdf, 'df')
     sorted_df = df.sort_values(by=['DR'], axis = 1).iloc[:,-1:]
@@ -791,7 +819,7 @@ def main():
     #test_path ='/home/yvonne/Dokumente/MA/TXS_final_grid/BestEpochsLocal/2019_07_19/2019_07_19-image.fits'
     #with_beam_and_mask(test_path, sourcename, get_rms(fits.open(str(test_path))[0]), 10)
     out = '/home/yvonne/Schreibtisch/Ergebnisse_24_06/'
-    get_paramset(str(path_to_grid)+'/results_0149+710.u.2017_11_18/MRun_2/data_TXS0149+710.h5', str(out) +'/IntialParamGrid.txt' )
+    get_paramset(str(path_to_grid)+'/results_0149+710.u.2017_11_18/MRun_0/data_TXS0149+710.h5', str(out) +'/IntialParamGrid.txt' )
     print("The inital parametergrid is saved as a latexfile.")
     path_list=[path_2017_11_18, path_2017_01_28, path_2017_04_22,
         path_2017_06_17, path_2018_02_02, path_2018_10_06, path_2019_07_19]
@@ -802,6 +830,9 @@ def main():
     beam_list=np.zeros((len(path_list),2))
     out_plot = str(out)+'Plots/'
     i=0
+    peak_flux = np.zeros(len(path_list))
+    cum_flux = np.zeros(len(path_list))
+    dates = np.zeros(len(path_list), dtype='datetime64[D]')
     '''
     for path in path_list:
         epoch = str(Path(path).parent.parent).split('.u.')[-1]
@@ -811,7 +842,7 @@ def main():
         path_to_image = str(path_to_fits)+'-image.fits'
         #plots images with and without mask  
         with_beam_and_text(path_to_image, sourcename, get_dyra(path), out_plot)
-        with_beam_and_mask(path_to_image, sourcename, get_rms(fits.open(str(path_to_image))[0]), 5, out_plot)
+        peak_flux[i], cum_flux[i] = with_beam_and_mask(path_to_image, sourcename, get_rms(fits.open(str(path_to_image))[0]), 5, out_plot)
         #Parameterset for every epoch as latex table
         if os.path.exists(str(path_to_grid)+'/BestParams/')==False:
             subprocess.call(["mkdir",str(path_to_grid)+'/BestParams/'])
@@ -819,20 +850,24 @@ def main():
         minor, major, angle = get_beam_info(path_to_image)
         beam_list[i]=[minor,major]
         i+=1
-    
-    beamsize= beam_list.max()*0.001
+    '''
+    #beamsize= beam_list.max()*0.001
+    beamsize=0.001401256084118922
     print("Now let's do this again with a set beam at ", beamsize, "arcsec")
+    i=0
     for path in path_list:
         epoch = str(Path(path).parent.parent).split('.u.')[-1]
+        dates[i]=str(time_date(str(epoch)))
         print('starting with:',epoch)
         #creates new dict with cleaned images with the biggest beam
         path_to_fits = run_WSClean_with_beam(path, epoch, beamsize)
         path_to_image = str(path_to_fits)+'-image.fits'
         with_beam_and_text(path_to_image, sourcename, get_dynamicrange(path_to_image), str(out_plot)+'/Beam_')
-        with_beam_and_mask(path_to_image, sourcename, get_rms(fits.open(str(path_to_image))[0]), 5, str(out_plot)+'/Beam_')
+        peak_flux[i], cum_flux[i]=with_beam_and_mask(path_to_image, sourcename, get_rms(fits.open(str(path_to_image))[0]), 5, str(out_plot)+'/Beam_')
         print('done with:', epoch)
+        i+=1
     
-
+    '''
     print('Fit those Components and make nice Plots')  
     path_to_same_beam = str(path_to_grid)+'/BestEpochSameBeam'
     path_to_images_wsb =glob.glob(str(path_to_same_beam)+'/**/*-image.fits')  
@@ -849,7 +884,9 @@ def main():
         plot_results_new_contour_only(img1, header1, sparam, epoch, 5, get_rms(f1[0]), str(out_plot)+'/Comps'+str(Path(image).stem)+'.png')
     '''
     print('Almost there')
-    epochs_comp_plot(str(out)+'/Components.h5',str(out_plot)+'/AllComps.png')     
+    epochs_comp_plot(str(out)+'/Components.h5',str(out_plot)+'/AllComps.png') 
+    plot_flux(peak_flux, dates, 'b', 'Peak', out_plot)
+    plot_flux(cum_flux, dates, 'r', 'Cumulated', out_plot)
     print('DONE! Wuhuuu!')
 if __name__ == '__main__':
     main()
