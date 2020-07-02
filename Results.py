@@ -95,6 +95,51 @@ def sort_params(pa, header):
     ind = np.argsort(dist)  
 
     return parameter[ind]
+
+def mas_params(pa, header):
+    center_x = header['CRPIX1']
+    center_y = header['CRPIX2']
+    
+    x_n_pixel = header['NAXIS1']
+
+    x_inc = (header['CDELT1'] * u.degree).to(u.mas) 
+    y_n_pixel = header['NAXIS2']
+
+
+    y_inc = (header['CDELT2'] * u.degree).to(u.mas)
+    y_ref_value = (header['CRVAL2'] * u.degree).to(u.mas)
+
+    x_ref_pixel = header['CRPIX1']
+    y_ref_pixel = header['CRPIX2']
+    
+    x_b= (x_ref_pixel * -x_inc).value 
+    x_m= ((((x_n_pixel - x_ref_pixel) * (x_inc)).value)-x_b)/x_n_pixel
+    y_b= (y_ref_pixel * -y_inc).value #-51.30000000000004
+    y_m= ((((y_n_pixel - y_ref_pixel) * y_inc).value)-y_b)/y_n_pixel
+    dist = np.ones(pa.shape[0])
+    
+    #print('dist:',dist)
+    parameter = np.ones((pa.shape[0],pa.shape[1]+1))
+    #print('parameter:',parameter)
+    #print(pa)
+    i=0
+    for p in pa:
+        r = np.sqrt((center_x-p[1])**2+(center_y-p[2])**2)
+        #print(r)
+        p= np.append(p,r)
+        parameter[i]=p
+        dist[i]=r
+        i+=1
+    ind = np.argsort(dist)  
+    
+    sparam = parameter[ind]
+    for sp in sparam:
+        sp[1]=(y_m*sp[1])+y_b
+        sp[2]=(x_m*sp[2])+x_b
+        sp[3] = x_m*sp[3]
+   
+    return sparam  
+
 def plot_results_new_contour_only(img, header, params, epoch,sigma, rms, out):
     '''
     Takes image and params array to visualize source overlayed with fitted components.
@@ -833,7 +878,7 @@ def main():
     peak_flux = np.zeros(len(path_list))
     cum_flux = np.zeros(len(path_list))
     dates = np.zeros(len(path_list), dtype='datetime64[D]')
-    '''
+    
     for path in path_list:
         epoch = str(Path(path).parent.parent).split('.u.')[-1]
         print('starting with:',epoch)
@@ -850,9 +895,9 @@ def main():
         minor, major, angle = get_beam_info(path_to_image)
         beam_list[i]=[minor,major]
         i+=1
-    '''
-    #beamsize= beam_list.max()*0.001
-    beamsize=0.001401256084118922
+    
+    beamsize= beam_list.max()*0.001
+    #beamsize=0.001401256084118922
     print("Now let's do this again with a set beam at ", beamsize, "arcsec")
     i=0
     for path in path_list:
@@ -867,7 +912,7 @@ def main():
         print('done with:', epoch)
         i+=1
     
-    '''
+    
     print('Fit those Components and make nice Plots')  
     path_to_same_beam = str(path_to_grid)+'/BestEpochSameBeam'
     path_to_images_wsb =glob.glob(str(path_to_same_beam)+'/**/*-image.fits')  
@@ -879,10 +924,13 @@ def main():
         header1 = f1[0].header
         pa1, *_ = fit_jet(img1, 5)
         sparam = sort_params(pa1, header1)
+        maparam= mas_params(pa1, header1)
+        df = pd.DataFrame(maparam)
         df2 = pd.DataFrame(sparam)
+        df.to_hdf(str(out)+'/Components_in_mas.h5',str(epoch))
         df2.to_hdf(str(out)+'/Components.h5',str(epoch))
         plot_results_new_contour_only(img1, header1, sparam, epoch, 5, get_rms(f1[0]), str(out_plot)+'/Comps'+str(Path(image).stem)+'.png')
-    '''
+    
     print('Almost there')
     epochs_comp_plot(str(out)+'/Components.h5',str(out_plot)+'/AllComps.png') 
     plot_flux(peak_flux, dates, 'b', 'Peak', out_plot)
